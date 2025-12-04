@@ -1,6 +1,6 @@
-# Excel to PDF Converter
+# Tri-Pack Excel to PDF Converter
 
-A React web application that converts Excel pallet tag files to PDF format, matching the exact layout and formatting of the sample output.
+A React web application that converts Excel pallet tag files to PDF format for Tri-Pack Films Limited. Generates professional 4x6 inch pallet tags with company branding, matching the exact layout and formatting requirements.
 
 ## Features
 
