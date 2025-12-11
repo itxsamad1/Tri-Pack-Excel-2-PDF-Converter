@@ -120,58 +120,18 @@ function loadImageAsBase64(url) {
   })
 }
 
-export async function convertExcelToPdf(excelData, filename) {
-  // Tag dimensions: height=4", width=6" (landscape orientation)
-  // In mm: height=101.6mm (4"), width=152.4mm (6")
-  const doc = new jsPDF({
-    orientation: 'landscape',
-    unit: 'mm',
-    format: [152.4, 101.6] // width x height: 6" x 4"
-  })
-
-  // Page dimensions in mm
-  const pageWidth = 152.4  // 6 inches (width)
-  const pageHeight = 101.6 // 4 inches (height)
-  const margin = 6 // Reduced margin for smaller format
-  const contentWidth = pageWidth - (margin * 2)
-  
-  // Get the first row of data early for header
-  const data = excelData.rows[0] || {}
-  
+// Helper function to generate a single page for a row of data
+async function generatePageForRow(doc, data, filename, pageWidth, pageHeight, margin, contentWidth, leftCol, rightCol, colWidth, labelValueGap, logoBase64, logoWidth, logoHeight) {
   let yPosition = margin
   const headerY = yPosition
-  let logoHeight = 0
-  const leftCol = margin
   
-  // Add logo on the left side - maintain original aspect ratio
-  try {
-    const logoUrl = '/tri-pack-logo.jpeg'
-    
-    // Load image first to get dimensions
-    const img = new Image()
-    img.crossOrigin = 'anonymous'
-    
-    await new Promise((resolve, reject) => {
-      img.onload = resolve
-      img.onerror = reject
-      img.src = logoUrl
-    })
-    
-    // Get base64 for PDF
-    const logoBase64 = await loadImageAsBase64(logoUrl)
-    
-    // Calculate dimensions maintaining aspect ratio
-    // Logo appears to be wider than tall, so maintain that ratio
-    const maxLogoHeight = 8
-    const aspectRatio = img.width / img.height
-    logoHeight = maxLogoHeight
-    const logoWidth = logoHeight * aspectRatio
-    
-    doc.addImage(logoBase64, 'JPEG', leftCol, yPosition, logoWidth, logoHeight)
-    console.log('Logo added successfully with aspect ratio:', aspectRatio, 'dimensions:', logoWidth, 'x', logoHeight)
-  } catch (error) {
-    console.warn('Could not load logo:', error)
-    // Continue without logo - logoHeight remains 0
+  // Add logo on the left side
+  if (logoBase64 && logoWidth && logoHeight) {
+    try {
+      doc.addImage(logoBase64, 'JPEG', leftCol, yPosition, logoWidth, logoHeight)
+    } catch (error) {
+      console.warn('Could not add logo to page:', error)
+    }
   }
   
   // Set font - using default sans-serif
@@ -195,18 +155,11 @@ export async function convertExcelToPdf(excelData, filename) {
   // Start content below header - moved a little lower
   yPosition = headerY + 13
   
-  // Debug: Log the data being processed
-  console.log('PDF Generator - Processing data:', data)
-  console.log('PDF Generator - Available keys:', Object.keys(data))
-  
   // Set default font size for body - adjusted for landscape 4x6 format - slightly bigger
   doc.setFontSize(7.5)
   doc.setFont('helvetica', 'normal')
   
-  // Use two columns for better use of landscape width
-  const rightCol = pageWidth / 2 + 3
-  const colWidth = (pageWidth - margin * 2) / 2 - 3
-  const labelValueGap = 15 // Gap between label and value
+  // Note: rightCol, colWidth, and labelValueGap are already passed as parameters
   
   // Left column: LC / PO #
   doc.setFont('helvetica', 'bold')
@@ -384,9 +337,86 @@ export async function convertExcelToPdf(excelData, filename) {
   // Underline
   doc.setLineWidth(0.3)
   doc.line(originX - 1, originY + 0.8, originX + originWidth + 1, originY + 0.8)
+}
+
+export async function convertExcelToPdf(excelData, filename) {
+  // Tag dimensions: height=4", width=6" (landscape orientation)
+  // In mm: height=101.6mm (4"), width=152.4mm (6")
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: [152.4, 101.6] // width x height: 6" x 4"
+  })
+
+  // Page dimensions in mm
+  const pageWidth = 152.4  // 6 inches (width)
+  const pageHeight = 101.6 // 4 inches (height)
+  const margin = 6 // Reduced margin for smaller format
+  const contentWidth = pageWidth - (margin * 2)
+  const leftCol = margin
+  const rightCol = pageWidth / 2 + 3
+  const colWidth = (pageWidth - margin * 2) / 2 - 3
+  const labelValueGap = 15 // Gap between label and value
+  
+  // Load logo once to reuse for all pages
+  let logoBase64 = null
+  let logoWidth = 0
+  let logoHeight = 0
+  
+  try {
+    const logoUrl = '/tri-pack-logo.jpeg'
+    
+    // Load image first to get dimensions
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    
+    await new Promise((resolve, reject) => {
+      img.onload = resolve
+      img.onerror = reject
+      img.src = logoUrl
+    })
+    
+    // Get base64 for PDF
+    logoBase64 = await loadImageAsBase64(logoUrl)
+    
+    // Calculate dimensions maintaining aspect ratio
+    const maxLogoHeight = 8
+    const aspectRatio = img.width / img.height
+    logoHeight = maxLogoHeight
+    logoWidth = logoHeight * aspectRatio
+    
+    console.log('Logo loaded successfully')
+  } catch (error) {
+    console.warn('Could not load logo:', error)
+  }
+  
+  // Get all rows from Excel data
+  const rows = excelData.rows || []
+  
+  if (rows.length === 0) {
+    console.warn('No data rows found in Excel file')
+    return
+  }
+  
+  console.log(`Generating PDF with ${rows.length} page(s)`)
+  
+  // Generate a page for each row
+  for (let i = 0; i < rows.length; i++) {
+    const data = rows[i]
+    
+    // Add new page for all rows except the first
+    if (i > 0) {
+      doc.addPage()
+    }
+    
+    // Generate page for this row
+    await generatePageForRow(doc, data, filename, pageWidth, pageHeight, margin, contentWidth, leftCol, rightCol, colWidth, labelValueGap, logoBase64, logoWidth, logoHeight)
+  }
   
   // Save the PDF
   const pdfFilename = filename.replace(/\.(xlsx|xls)$/i, '.pdf')
   doc.save(pdfFilename)
+  
+  console.log(`PDF generated successfully with ${rows.length} page(s)`)
 }
 
