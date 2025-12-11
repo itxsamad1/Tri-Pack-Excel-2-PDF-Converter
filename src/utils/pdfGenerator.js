@@ -223,8 +223,13 @@ async function generatePageForRow(doc, data, filename, pageWidth, pageHeight, ma
   const reelsLabel = 'No. OF REELS / PALLET'
   doc.text(reelsLabel, rightCol, yPosition)
   const numReels = getValue(data, ['NO. Of Reels / Pallet', 'NO. Of Reels / Pallet:', 'No. OF REELS / PALLET', 'Reels', 'Number of Reels'])
-  doc.setFont('helvetica', 'normal')
+  // Make the number bigger
+  doc.setFontSize(9)
+  doc.setFont('helvetica', 'bold')
   doc.text(numReels, rightCol + doc.getTextWidth(reelsLabel) + 2, yPosition)
+  // Reset font size
+  doc.setFontSize(7.5)
+  doc.setFont('helvetica', 'normal')
   yPosition += 4
   
   // NET WEIGHT (PALLET) - left column
