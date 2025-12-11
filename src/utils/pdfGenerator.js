@@ -276,17 +276,12 @@ export async function convertExcelToPdf(excelData, filename) {
   
   // NET WEIGHT (PALLET) - left column
   doc.setFont('helvetica', 'bold')
-  doc.text('NET WEIGHT (PALLET):', leftCol, yPosition)
+  const netWeightLabel = 'NET WEIGHT (PALLET):'
+  doc.text(netWeightLabel, leftCol, yPosition)
   const netWeight = getValue(data, ['Net Weight (PALLET):', 'NET WEIGHT (PALLET):', 'NET WEIGHT (PALLET)', 'Net Weight', 'Net Weight (Pallet)'])
-  doc.setFont('helvetica', 'normal')
-  doc.text(netWeight, leftCol + 46, yPosition)
-  doc.text('KGS.', leftCol + 46 + doc.getTextWidth(netWeight) + 2, yPosition)
-  yPosition += 4
   
   // GROSS WEIGHT (PALLET) - left column (below NET WEIGHT) - format to 2 decimal places
-  doc.setFont('helvetica', 'bold')
   const grossWeightLabel = 'GROSS WEIGHT (PALLET):'
-  doc.text(grossWeightLabel, leftCol, yPosition)
   const grossWeightRaw = getValue(data, ['Gross Weight (PALLET):', 'GROSS WEIGHT (PALLET):', 'GROSS WEIGHT (PALLET)', 'Gross Weight', 'Gross Weight (Pallet)'])
   // Format to 2 decimal places
   let grossWeight = grossWeightRaw
@@ -294,9 +289,23 @@ export async function convertExcelToPdf(excelData, filename) {
   if (!isNaN(grossWeightNum)) {
     grossWeight = grossWeightNum.toFixed(2)
   }
+  
+  // Calculate the maximum label width to align values at the same x position
+  const maxLabelWidth = Math.max(doc.getTextWidth(netWeightLabel), doc.getTextWidth(grossWeightLabel))
+  const valueX = leftCol + maxLabelWidth + 3 // Aligned x position for both values
+  
+  // Display NET WEIGHT value and KGS aligned
   doc.setFont('helvetica', 'normal')
-  doc.text(grossWeight, leftCol + doc.getTextWidth(grossWeightLabel) + 3, yPosition)
-  doc.text('KGS.', leftCol + doc.getTextWidth(grossWeightLabel) + 3 + doc.getTextWidth(grossWeight) + 2, yPosition)
+  doc.text(netWeight, valueX, yPosition)
+  doc.text('KGS.', valueX + doc.getTextWidth(netWeight) + 2, yPosition)
+  yPosition += 4
+  
+  // Display GROSS WEIGHT value and KGS aligned (same x position)
+  doc.setFont('helvetica', 'bold')
+  doc.text(grossWeightLabel, leftCol, yPosition)
+  doc.setFont('helvetica', 'normal')
+  doc.text(grossWeight, valueX, yPosition)
+  doc.text('KGS.', valueX + doc.getTextWidth(grossWeight) + 2, yPosition)
   yPosition += 4
   
   // PALLET DIMENSIONS MM - left column
