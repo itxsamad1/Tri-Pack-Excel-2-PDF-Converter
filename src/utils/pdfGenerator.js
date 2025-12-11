@@ -178,7 +178,7 @@ export async function convertExcelToPdf(excelData, filename) {
   doc.setFont('helvetica')
   
   // Title: PALLET TAG (centered) - slightly bigger
-  doc.setFontSize(12)
+  doc.setFontSize(13)
   doc.setFont('helvetica', 'bold')
   const titleText = 'PALLET TAG'
   const titleWidth = doc.getTextWidth(titleText)
@@ -186,22 +186,11 @@ export async function convertExcelToPdf(excelData, filename) {
   
   // Container Number: CONT # XX (centered, below title) - slightly bigger
   const containerNum = extractContainerNumber(filename, data)
-  doc.setFontSize(10)
+  doc.setFontSize(11)
   doc.setFont('helvetica', 'bold')
   const contText = `CONT # ${containerNum}`
   const contWidth = doc.getTextWidth(contText)
   doc.text(contText, (pageWidth - contWidth) / 2, headerY + 7)
-  
-  // PROFORMA INVOICE NUMBER (right side of header) - make label bold, value normal - slightly bigger
-  doc.setFontSize(6.5)
-  doc.setFont('helvetica', 'bold')
-  const invoiceLabel = 'PROFORMA INVOICE NUMBER:'
-  const invoiceNum = getValue(data, ['PROFORMA INVOICE NUMBER:', 'PROFORMA INVOICE NUMBER', 'Invoice Number', 'Invoice'])
-  const invoiceLabelWidth = doc.getTextWidth(invoiceLabel)
-  const invoiceX = pageWidth - margin - invoiceLabelWidth - doc.getTextWidth(invoiceNum) - 2
-  doc.text(invoiceLabel, invoiceX, headerY + 3)
-  doc.setFont('helvetica', 'normal')
-  doc.text(invoiceNum, invoiceX + invoiceLabelWidth + 2, headerY + 3)
   
   // Start content below header - moved a little lower
   yPosition = headerY + 13
@@ -211,7 +200,7 @@ export async function convertExcelToPdf(excelData, filename) {
   console.log('PDF Generator - Available keys:', Object.keys(data))
   
   // Set default font size for body - adjusted for landscape 4x6 format - slightly bigger
-  doc.setFontSize(7)
+  doc.setFontSize(7.5)
   doc.setFont('helvetica', 'normal')
   
   // Use two columns for better use of landscape width
@@ -248,6 +237,15 @@ export async function convertExcelToPdf(excelData, filename) {
   doc.setFont('helvetica', 'bold')
   const country = addressParts.country || getValue(data, ['Country', 'Spain'])
   doc.text(country, leftCol, yPosition)
+  yPosition += 4
+  
+  // PROFORMA INVOICE NUMBER (left column, below address) - make label bold, value normal
+  doc.setFont('helvetica', 'bold')
+  const invoiceLabel = 'PROFORMA INVOICE NUMBER:'
+  const invoiceNum = getValue(data, ['PROFORMA INVOICE NUMBER:', 'PROFORMA INVOICE NUMBER', 'Invoice Number', 'Invoice'])
+  doc.text(invoiceLabel, leftCol, yPosition)
+  doc.setFont('helvetica', 'normal')
+  doc.text(invoiceNum, leftCol + doc.getTextWidth(invoiceLabel) + 2, yPosition)
   yPosition += 4.5
   
   // FILM DESCP (left column, full width) - remove semicolon
@@ -283,15 +281,22 @@ export async function convertExcelToPdf(excelData, filename) {
   doc.setFont('helvetica', 'normal')
   doc.text(netWeight, leftCol + 46, yPosition)
   doc.text('KGS.', leftCol + 46 + doc.getTextWidth(netWeight) + 2, yPosition)
+  yPosition += 4
   
-  // GROSS WEIGHT (PALLET) - right column (aligned with NET WEIGHT) - value closer to heading
+  // GROSS WEIGHT (PALLET) - left column (below NET WEIGHT) - format to 2 decimal places
   doc.setFont('helvetica', 'bold')
   const grossWeightLabel = 'GROSS WEIGHT (PALLET):'
-  doc.text(grossWeightLabel, rightCol, yPosition)
-  const grossWeight = getValue(data, ['Gross Weight (PALLET):', 'GROSS WEIGHT (PALLET):', 'GROSS WEIGHT (PALLET)', 'Gross Weight', 'Gross Weight (Pallet)'])
+  doc.text(grossWeightLabel, leftCol, yPosition)
+  const grossWeightRaw = getValue(data, ['Gross Weight (PALLET):', 'GROSS WEIGHT (PALLET):', 'GROSS WEIGHT (PALLET)', 'Gross Weight', 'Gross Weight (Pallet)'])
+  // Format to 2 decimal places
+  let grossWeight = grossWeightRaw
+  const grossWeightNum = parseFloat(grossWeightRaw)
+  if (!isNaN(grossWeightNum)) {
+    grossWeight = grossWeightNum.toFixed(2)
+  }
   doc.setFont('helvetica', 'normal')
-  doc.text(grossWeight, rightCol + doc.getTextWidth(grossWeightLabel) + 3, yPosition)
-  doc.text('KGS.', rightCol + doc.getTextWidth(grossWeightLabel) + 3 + doc.getTextWidth(grossWeight) + 2, yPosition)
+  doc.text(grossWeight, leftCol + doc.getTextWidth(grossWeightLabel) + 3, yPosition)
+  doc.text('KGS.', leftCol + doc.getTextWidth(grossWeightLabel) + 3 + doc.getTextWidth(grossWeight) + 2, yPosition)
   yPosition += 4
   
   // PALLET DIMENSIONS MM - left column
@@ -330,7 +335,7 @@ export async function convertExcelToPdf(excelData, filename) {
   const dimValueX = leftCol + 42 // Align all values at same x position
   
   doc.setFont('helvetica', 'normal')
-  doc.setFontSize(6.5)
+  doc.setFontSize(7)
   
   // Width (first dimension shown)
   doc.text('Width', dimLabelX, yPosition)
@@ -347,7 +352,7 @@ export async function convertExcelToPdf(excelData, filename) {
   doc.text(length, dimValueX, yPosition)
   
   // Reset font size
-  doc.setFontSize(7)
+  doc.setFontSize(7.5)
   yPosition += 4
   
   // PALLET NUMBER - right column (aligned with PALLET DIMENSIONS)
@@ -359,7 +364,7 @@ export async function convertExcelToPdf(excelData, filename) {
   yPosition += 5
   
   // MADE IN PAKISTAN (centered, bold, underlined, at bottom) - slightly bigger
-  doc.setFontSize(7)
+  doc.setFontSize(7.5)
   doc.setFont('helvetica', 'bold')
   const originText = 'MADE IN PAKISTAN'
   const originWidth = doc.getTextWidth(originText)
